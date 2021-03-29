@@ -22,6 +22,7 @@ class CoreDataManager: NSObject {
         let entity = NSEntityDescription.entity(forEntityName: "RestaurantEntity", in: context)
         
         let managedObj = NSManagedObject(entity: entity!, insertInto: context)
+        
         managedObj.setValue("Tim Hortons", forKey: "name")
         managedObj.setValue("2900 Warden Ave Unit 149", forKey: "street")
         managedObj.setValue("Scarborough", forKey: "city")
@@ -31,6 +32,8 @@ class CoreDataManager: NSObject {
         managedObj.setValue("good", forKey: "descriptions")
         managedObj.setValue(4167730663, forKey: "phone")
         managedObj.setValue(3.5, forKey: "rate")
+        
+
         
         do{
             try context.save()

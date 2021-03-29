@@ -15,6 +15,7 @@ class MainViewController: UIViewController {
         
         //CoreDataManager.storeObj()
         
+        
         CoreDataManager.fetchObj()
         
         // Do any additional setup after loading the view.
