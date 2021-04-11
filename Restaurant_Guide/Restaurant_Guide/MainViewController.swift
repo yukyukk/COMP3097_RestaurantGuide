@@ -7,13 +7,15 @@
 
 import Foundation
 import UIKit
+import CoreData
 
 class MainViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UISearchResultsUpdating, UISearchBarDelegate {
     
-    // SEARCH BAR FUNCTIONS
+    
+    /*   SEARCH BAR FUNCTIONS   */
     func updateSearchResults(for searchController: UISearchController) {
         if let searchText = searchController.searchBar.text {
-            filterCurrentDataSource(searchTerm:  searchText)
+            filterCurrentDataSource(searchTerm: searchText)
         }
     }
     
@@ -31,32 +33,57 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
     }
     
-    // TABLE VIEW FUNCTIONS
+    /*   TABLE VIEW FUNCTIONS   */
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let alertController = UIAlertController(title: "Selection", message: "Selected: \(currentDataSource[indexPath.row])", preferredStyle: .alert)
-        
-        searchController?.isActive = false
-        
-        let okAction = UIAlertAction(title: "Ok", style: .default, handler: nil)
-        alertController.addAction(okAction)
-        present(alertController, animated: true, completion: nil)
+        // pass selected resto id info to next page
+        let selectResto = self.items![indexPath.row]
+        self.restoIndex = selectResto.id!
+        self.restoArray = [] // re-initialize
+        self.restoArray += [selectResto.id!, selectResto.name!, selectResto.street!, selectResto.city!, selectResto.country!, selectResto.postal_code!, selectResto.phone!, selectResto.tag!, selectResto.rating!, selectResto.desc!]
+        performSegue(withIdentifier: "showResto", sender: self)
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return currentDataSource.count
+        return self.items?.count ?? 0
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
-        cell.textLabel?.text = currentDataSource[indexPath.row]
+        self.fetchRestaurants()
+        cc = (items!.count-1)
+        if cc >= indexPath.row { // if no item is deleted
+            let restaurant = self.items![indexPath.row]
+            let name = String(restaurant.name!)
+            let tag = String(restaurant.tag!)
+            cell.textLabel?.text = "\(name) (tag: \(tag))"
+        } else {
+            let count = indexPath.row-1
+            if count != -1 { // if not empty
+                let restaurant = self.items![count]
+                let name = String(restaurant.name!)
+                let tag = String(restaurant.tag!)
+                    cell.textLabel?.text = "\(name) (tag: \(tag))"
+                }
+        }
         return cell
     }
     
+    // pass info segue
+    override func prepare(for segue: UIStoryboardSegue!, sender: Any?) {
+        if segue.identifier == "showResto" {
+            var vc = segue.destination as! showRestoController
+            vc.indexRetrieved = self.restoIndex
+            vc.restoRetrieved = self.restoArray
+        }
+    }
+ 
     
-    // SEARCH AND TABLE VIEW VARIABLES
+    /*   SEARCH AND TABLE VIEW VARIABLES  */
     var searchController: UISearchController?
     var originalDataSource: [String] = [] // represents original source
     var currentDataSource: [String] = [] // represents what we're currently looking at
+    var items:[Restaurant]?
     
     @IBOutlet weak var searchContainerView: UIView!
     @IBOutlet weak var tableView: UITableView!
@@ -64,10 +91,17 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         restoreCurrentDataSource()
     }
     
+    // Core Data
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    var restoIndex = String()
+    var restoArray = [String]()
+    var a = [String]()
+    var cc = Int()
     
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.fetchRestaurants() // get items from core data
         
         // logo
         var logo = UIImage(named: "resto_logo_foreground.png")
@@ -75,17 +109,10 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         // go to about page
         self.navigationItem.leftBarButtonItem = UIBarButtonItem(image: logo, style:.plain, target: nil, action: nil)
         
-        
-        
-        addRestoToDataSource(restoCount: 1, resto: "McDonalds", tag: "cafe")
-        addRestoToDataSource(restoCount: 2, resto: "Tim Hortons", tag: "cafe")
-        
+        tableView.reloadData()
         tableView.delegate = self
         tableView.dataSource = self
-        
-        currentDataSource = originalDataSource // current view is dependent to orig data source
-        
-       
+        //getCountFirst()
         
         // SEARCH VIEW CONTROLLER
         // override search bar
@@ -96,15 +123,6 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         searchController?.obscuresBackgroundDuringPresentation = false
         searchController?.searchBar.placeholder = "Search name or tag"
      }
-    
-    
-    // POPULATE LIST
-    func addRestoToDataSource(restoCount: Int, resto: String, tag: String) {
-        
-        //for index in 0...restoCount {
-            originalDataSource.append("\(resto) (\(tag))")
-        //}
-    }
  
     
     // FILTER OUT SEARCH TERM
@@ -119,12 +137,22 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
     }
     
-    
     func restoreCurrentDataSource() {
         currentDataSource = originalDataSource
         tableView.reloadData()
     }
     
+    func fetchRestaurants() {
+        // Fetch data from Core data to display in the tableview
+        do {
+            self.items = try context.fetch(Restaurant.fetchRequest())
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        }
+        catch {
+            
+        }
+    }
     
-
 } // end of MainViewController: UIViewController class
