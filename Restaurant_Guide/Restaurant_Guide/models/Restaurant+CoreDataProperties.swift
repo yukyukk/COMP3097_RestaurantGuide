@@ -2,7 +2,7 @@
 //  Restaurant+CoreDataProperties.swift
 //  Restaurant_Guide
 //
-//  Created by Jes Muli on 2021-04-10.
+//  Created by Jes Muli on 2021-04-15.
 //
 //
 
@@ -20,12 +20,12 @@ extension Restaurant {
     @NSManaged public var country: String?
     @NSManaged public var desc: String?
     @NSManaged public var name: String?
-    @NSManaged public var phone: String?
     @NSManaged public var postal_code: String?
     @NSManaged public var rating: String?
     @NSManaged public var street: String?
     @NSManaged public var tag: String?
     @NSManaged public var id: String?
+    @NSManaged public var phone: String?
 
 }
 

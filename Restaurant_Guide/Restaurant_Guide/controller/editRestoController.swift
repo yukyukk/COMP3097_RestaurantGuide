@@ -15,6 +15,8 @@ class editRestoController: UIViewController, UITableViewDelegate, UITableViewDat
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     var items:[Restaurant]?
     var editIndex = ""
+    var editResto: [String] = []
+    var tag = ""
     
     @IBOutlet weak var txtName: UITextField!
     @IBOutlet weak var txtStreet: UITextField!
@@ -25,14 +27,13 @@ class editRestoController: UIViewController, UITableViewDelegate, UITableViewDat
     @IBOutlet weak var tagBtnDropped: UIButton!
     @IBOutlet weak var tagTblView: UITableView!
     @IBOutlet weak var txtDescription: UITextView!
+    @IBOutlet weak var lblLastTag: UILabel!
     
     @IBOutlet var starRating: [UIButton]!
+    
+    var tagList = ["Cafe", "Pizza", "Chinese", "Sushi", "Mexican Food", "Thai Food", "Seafood", "Indian Food", "Dessert", "Burgers", "Asian Food", "Italian Food", "Vegan", "Sandwiches", "Vegetarian", "Organic", "Others"]
     var resto_rating: String = "0"
     var resto_tag: String = "Others"
-    
-    var tagList = ["Cafe", "Banana", "Apple", "Melon", "papaya"]
-    
-    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -44,8 +45,19 @@ class editRestoController: UIViewController, UITableViewDelegate, UITableViewDat
         self.items = try! context.fetch(Restaurant.fetchRequest())
         
         // populate info
-        self.txtName.text = "indexRetrieved"
-        self.txtStreet.text = editIndex
+        self.txtName.text = editResto[1]
+        self.txtStreet.text = editResto[2]
+        self.txtCity.text = editResto[3]
+        self.txtCountry.text = editResto[4]
+        self.txtPostal.text = editResto[5]
+        self.txtPhone.text = editResto[6]
+        self.lblLastTag.text = "You previously selected: " + editResto[7]
+        self.txtDescription.text = editResto[9]
+        let stars = Int(editResto[8]) ?? 0
+        for star in 0..<stars {
+            starRating[star].setBackgroundImage(UIImage.init(named: "star"), for: .normal)
+            resto_rating = editResto[8]
+        }
     }
     
     /*   FUNCTIONS  */
@@ -71,36 +83,79 @@ class editRestoController: UIViewController, UITableViewDelegate, UITableViewDat
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let tags = tableView.dequeueReusableCell(withIdentifier: "restoTags", for: indexPath)
+        
         tags.textLabel?.text = tagList[indexPath.row]
         resto_tag = tagList[indexPath.row]
+    
         return tags
     }
     
     @IBAction func saveBtnClicked(_ sender: Any) {
-        let newResto = Restaurant(context: self.context)
-        newResto.name = txtName.text
-        newResto.street = txtStreet.text
-        newResto.city = txtCity.text
-        newResto.country = txtCountry.text
-        newResto.postal_code = txtPostal.text
-        newResto.phone = txtPhone.text
-        newResto.desc = txtDescription.text
-        newResto.rating = resto_rating
-        newResto.tag = resto_tag
-        newResto.id = UUID().uuidString // this will remain later
         
-        // Save data
-        do {
-            try self.context.save()
-            let alert = UIAlertController(title: "Success", message: "Restaurant data is updated!", preferredStyle: .alert)
+        // UNCHANGED INFO
+        if txtDescription.text == "Type your thoughts here..." {
+            txtDescription.text = "N/A"
+        }
+        if tagBtnDropped.titleLabel!.text! == "Select Tag..." { // if tag is not changed
+            self.tag = editResto[7]
+        } else {
+            self.tag = tagBtnDropped.titleLabel!.text!.replacingOccurrences(of: "Selected: ", with: "")
+        }
+        
+        
+        // validations
+        if ((txtName.text == nil) || (txtName.text == "") || (txtStreet.text == nil) || (txtStreet.text == "") || (txtCity.text == nil) || (txtCity.text == "") || (txtCountry.text == nil) || (txtCountry.text == "") || (txtPostal.text == nil) && (txtPostal.text == "") || (txtPhone.text == nil) || (txtPhone.text == "")) {
             
-            let alertOk = UIAlertAction(title: "Ok", style: .default) { (action) in
-                self.navigationController?.popToRootViewController(animated: true)
-            }
+            let alert = UIAlertController(title: "Incomplete Form", message: "Please fill-in all the details of this form.", preferredStyle: .alert)
+            let alertOk = UIAlertAction(title: "Ok", style: .default)
             alert.addAction(alertOk)
             present(alert, animated: true, completion: nil)
+            
+        } else {
+            
+            let request : NSFetchRequest<Restaurant> = Restaurant.fetchRequest()
+            request.predicate = NSPredicate(format: "id = %@", String(self.editIndex))
+
+            context.performAndWait {
+                do {
+                    let result = try context.fetch(request)
+                    //Update
+                    for editResto in result { // assuming they're changed
+                        editResto.name = txtName.text
+                        editResto.name = txtName.text
+                        editResto.street = txtStreet.text
+                        editResto.city = txtCity.text
+                        editResto.country = txtCountry.text
+                        editResto.postal_code = txtPostal.text
+                        editResto.phone = txtPhone.text
+                        editResto.desc = txtDescription.text
+                        editResto.rating = resto_rating
+                        editResto.tag = self.tag
+                    }
+                }
+                catch {
+                    print("Fetching data error: \(error)")
+                }
+            }
         }
-        catch {
+        
+        // save data
+        if context.hasChanges {
+            context.performAndWait {
+                do {
+                    try self.context.save()
+                    let alert = UIAlertController(title: "Success", message: "Restaurant data is updated!", preferredStyle: .alert)
+                        
+                    let alertOk = UIAlertAction(title: "Ok", style: .default) { (action) in
+                        self.navigationController?.popToRootViewController(animated: true)
+                    }
+                    alert.addAction(alertOk)
+                    present(alert, animated: true, completion: nil)
+                }
+                catch {
+                    print("Saving edited data error: \(error)")
+                }
+            }
         }
     }
     

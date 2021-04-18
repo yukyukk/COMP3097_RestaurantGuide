@@ -2,6 +2,7 @@
 This project is a mobile app named "Personal Restaurant Guide" that runs on iOS mobile devices. This app allows users to track the restaurants they have visited, rate them, and share the information with others on through email, FaceBook, and Twitter.
 
 # Created by:
+
 * Lei Jing
 
 * Jes Muli

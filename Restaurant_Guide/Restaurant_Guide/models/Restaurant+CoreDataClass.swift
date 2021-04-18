@@ -2,7 +2,7 @@
 //  Restaurant+CoreDataClass.swift
 //  Restaurant_Guide
 //
-//  Created by Jes Muli on 2021-04-10.
+//  Created by Jes Muli on 2021-04-15.
 //
 //
 

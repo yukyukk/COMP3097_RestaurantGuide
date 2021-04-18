@@ -28,7 +28,13 @@ class showRestoController: UIViewController {
     @IBOutlet weak var lblPhone: UILabel!
     @IBOutlet weak var lblTag: UILabel!
     @IBOutlet weak var lblDescription: UILabel!
-    @IBOutlet weak var starRating: UIButton!
+    @IBOutlet weak var star1: UIImageView!
+    @IBOutlet weak var star2: UIImageView!
+    @IBOutlet weak var star3: UIImageView!
+    @IBOutlet weak var star4: UIImageView!
+    @IBOutlet weak var star5: UIImageView!
+   
+
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -42,33 +48,28 @@ class showRestoController: UIViewController {
         lblCountry.text = restoRetrieved[4]
         lblPostal.text = restoRetrieved[5]
         lblPhone.text = restoRetrieved[6]
+        lblTag.text = restoRetrieved[7]
         lblDescription.text = restoRetrieved[9]
         
-        // tag and rating
-        
-        /*
-        for star in starRating {
-            if star.tag <= (sender as AnyObject).tag {
-                star.setBackgroundImage(UIImage.init(named: "star"), for: .normal)
-            } else {
-                star.setBackgroundImage(UIImage.init(named: "nostar"), for: .normal)
-            }
-            resto_rating = String((sender as AnyObject).tag)
+        var stars = Int(restoRetrieved[8]) ?? 0
+        let starRating = [star1, star2, star3, star4, star5]
+        for star in 0..<stars {
+            starRating[star]!.image = UIImage(named:"star")
         }
- */
-        
     }
     
+    // pass info segue to editRestoController
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "editResto" {
+            var vc = segue.destination as! editRestoController
+            vc.editIndex = self.indexRetrieved
+            vc.editResto = self.restoRetrieved
+        }
+    }
     
     @IBAction func editBtnClicked(_ sender: Any) {
         self.editIndex = indexRetrieved
         performSegue(withIdentifier: "editResto", sender: self)
-    }
-    
-    // pass info segue
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        var vc = segue.destination as! editRestoController
-        vc.editIndex = self.indexRetrieved
     }
     
     @IBAction func btnDeleteClicked(_ sender: Any) {
@@ -98,14 +99,25 @@ class showRestoController: UIViewController {
                     self.navigationController?.popToRootViewController(animated: true)
                     
                 } catch {
+                    print("Deleting data error: \(error)")
                 }
             }
         }))
 
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: { (action: UIAlertAction!) in
-          //stay on page
-          }))
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel)) // stay on page 
         present(alert, animated: true, completion: nil)
     }
-        
+    
+    
+    @IBAction func shareEmailBtnClicked(_ sender: Any) {
+    }
+    
+    
+    @IBAction func shareFacebookBtnClicked(_ sender: Any) {
+    }
+    
+    
+    @IBAction func shareTwitterBtnClicked(_ sender: Any) {
+    }
+    
 }

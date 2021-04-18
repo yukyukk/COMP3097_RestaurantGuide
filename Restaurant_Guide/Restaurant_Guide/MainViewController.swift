@@ -10,28 +10,36 @@ import UIKit
 import CoreData
 
 class MainViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UISearchResultsUpdating, UISearchBarDelegate {
-    
-    
+   
     /*   SEARCH BAR FUNCTIONS   */
     func updateSearchResults(for searchController: UISearchController) {
         if let searchText = searchController.searchBar.text {
             filterCurrentDataSource(searchTerm: searchText)
+            self.tableView.reloadData()
+        }
+    }
+ 
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchController?.isActive = false
+        if let searchText = searchController!.searchBar.text {
+            filterCurrentDataSource(searchTerm: searchText)
+            self.tableView.reloadData()
         }
     }
     
-    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-        searchController?.isActive = false
-        if let searchText = searchBar.text {
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if let searchText = searchController!.searchBar.text {
             filterCurrentDataSource(searchTerm: searchText)
+            self.tableView.reloadData()
         }
     }
     
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
-        searchController?.isActive = false
         if let searchText = searchBar.text, !searchText.isEmpty {
-            restoreCurrentDataSource()
+        self.fetchRestaurants()
         }
     }
+
     
     /*   TABLE VIEW FUNCTIONS   */
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -40,7 +48,7 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.restoIndex = selectResto.id!
         self.restoArray = [] // re-initialize
         self.restoArray += [selectResto.id!, selectResto.name!, selectResto.street!, selectResto.city!, selectResto.country!, selectResto.postal_code!, selectResto.phone!, selectResto.tag!, selectResto.rating!, selectResto.desc!]
-        performSegue(withIdentifier: "showResto", sender: self)
+        performSegue(withIdentifier: "showResto", sender: self) // send selected data to showResto
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -50,8 +58,8 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
-        self.fetchRestaurants()
         cc = (items!.count-1)
+        // core data on table not updating synchronously. function needed.
         if cc >= indexPath.row { // if no item is deleted
             let restaurant = self.items![indexPath.row]
             let name = String(restaurant.name!)
@@ -69,10 +77,10 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         return cell
     }
     
-    // pass info segue
-    override func prepare(for segue: UIStoryboardSegue!, sender: Any?) {
+    // pass info to segue
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "showResto" {
-            var vc = segue.destination as! showRestoController
+            let vc = segue.destination as! showRestoController
             vc.indexRetrieved = self.restoIndex
             vc.restoRetrieved = self.restoArray
         }
@@ -81,21 +89,24 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     /*   SEARCH AND TABLE VIEW VARIABLES  */
     var searchController: UISearchController?
-    var originalDataSource: [String] = [] // represents original source
-    var currentDataSource: [String] = [] // represents what we're currently looking at
     var items:[Restaurant]?
     
     @IBOutlet weak var searchContainerView: UIView!
     @IBOutlet weak var tableView: UITableView!
+    
     @IBAction func clearList(_ sender: Any) {
-        restoreCurrentDataSource()
+        self.items!.removeAll()
+        tableView.reloadData()
+    }
+    
+    @IBAction func listAll(_ sender: Any) {
+        self.fetchRestaurants() // get items from core data
     }
     
     // Core Data
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     var restoIndex = String()
     var restoArray = [String]()
-    var a = [String]()
     var cc = Int()
     
     
@@ -112,7 +123,6 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         tableView.reloadData()
         tableView.delegate = self
         tableView.dataSource = self
-        //getCountFirst()
         
         // SEARCH VIEW CONTROLLER
         // override search bar
@@ -123,25 +133,28 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         searchController?.obscuresBackgroundDuringPresentation = false
         searchController?.searchBar.placeholder = "Search name or tag"
      }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        self.fetchRestaurants() // refresh info from table
+    }
  
     
     // FILTER OUT SEARCH TERM
     func filterCurrentDataSource(searchTerm: String) {
-        if searchTerm.count > 0 {
-            // resets source and filter out from fresh state
-            currentDataSource = originalDataSource
-            let filteredResults = currentDataSource.filter { $0.replacingOccurrences(of: " ", with: "").lowercased().contains(searchTerm.replacingOccurrences(of: " ", with: "").lowercased())}
-        
-            currentDataSource = filteredResults
+        do {
+            let request = Restaurant.fetchRequest() as NSFetchRequest<Restaurant>
+            // Set filtering by name or tags on the request
+            let namePredicate = NSPredicate(format: "name CONTAINS[c] %@", searchTerm)
+            let tagPredicate = NSPredicate(format: "tag CONTAINS[c] %@", searchTerm)
+            let orPredicate = NSCompoundPredicate(type: .or, subpredicates: [namePredicate, tagPredicate])
+            request.predicate = orPredicate
+           
+            self.items = try? context.fetch(request)
             tableView.reloadData()
         }
     }
     
-    func restoreCurrentDataSource() {
-        currentDataSource = originalDataSource
-        tableView.reloadData()
-    }
-    
+    // FETCH DATA
     func fetchRestaurants() {
         // Fetch data from Core data to display in the tableview
         do {
@@ -151,8 +164,9 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
             }
         }
         catch {
-            
+            print("Fetching data error: \(error)")
         }
     }
+    
     
 } // end of MainViewController: UIViewController class
